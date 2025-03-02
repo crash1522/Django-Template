@@ -1,0 +1,25 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 시스템 의존성 설치 (최소한의 패키지만)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python 의존성 설치 (프로덕션 패키지만)
+COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev
+
+# 애플리케이션 코드 복사
+COPY . .
+
+# 실행 권한 설정
+RUN chmod +x /app/docker-entrypoint.prod.sh
+
+ENTRYPOINT ["/app/docker-entrypoint.prod.sh"] 

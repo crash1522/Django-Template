@@ -1,0 +1,27 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# PATH에 Poetry 경로 추가
+ENV PATH="/root/.local/bin:$PATH"
+
+# 시스템 의존성 및 Poetry 설치
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/* && \
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    poetry config virtualenvs.create false && \
+    poetry config installer.max-workers 10
+
+# 의존성 파일 복사 및 설치
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --only main --no-interaction --no-ansi
+
+# 애플리케이션 코드 복사
+COPY . .
+
+# Celery 워커 실행
+CMD ["celery", "-A", "config", "worker", "--loglevel=info"] 
